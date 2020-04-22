@@ -1,5 +1,5 @@
 # contacts-2
-Web service with contacts ant a list of their borrowed books from library
+Web service with contacts and a list of their borrowed books from library
 
 1. Clone git repository:
 ```git clone https://github.com/augkik/contacts-2.git```
