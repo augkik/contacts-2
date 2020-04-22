@@ -90,6 +90,10 @@ public class Access {
             return 2;
         }
 
+        if (!uContact.getBooks().isEmpty()) {
+            return 4;
+        }
+
         for(Contact contact : contactList) {
             if(contact.getId() == uContact.getId()){
                 return 3;

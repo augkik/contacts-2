@@ -63,7 +63,6 @@ public class Controller {
     @RequestMapping(value = "/contacts", method = RequestMethod.POST)
     public ResponseEntity<String> addContact(@Valid @RequestBody Contact contact, UriComponentsBuilder b){
         int response = contactAccess.addContact(contact);
-
         List<Contact> list = contactAccess.getAllContacts();
         Contact element = list.get(list.size() - 1);
         HttpHeaders headers = headerBuilder(b, element.getId());
@@ -100,10 +99,15 @@ public class Controller {
 
     @RequestMapping(value = "/contacts/{id}", method = RequestMethod.PUT)
     public ResponseEntity<String> updateContact(@PathVariable(value="id") int oid, @Valid @RequestBody Contact contact, UriComponentsBuilder b){
+        List<String> booksStr = contactAccess.getContact(oid).getBooks();
+
         if(contactAccess.getContact(oid) != null){
+
+
             int response = contactAccess.updateContact(oid, contact);
             Contact element;
             HttpHeaders headers;
+
             if(contact.getId() == 0){
                 element = contactAccess.getContact(oid);
             }
@@ -111,10 +115,14 @@ public class Controller {
                 element = contactAccess.getContact(contact.getId());
             }
             headers = headerBuilder(b, element.getId());
-            if(response == 1)
+            if(response == 1) {
+                contact.setBooks(booksStr);
                 return new ResponseEntity<String>("Contact updated successfully.", headers, HttpStatus.OK);
+            }
             else if(response == 3)
                 return new ResponseEntity<String>("Failed. New id already exists.", headers, HttpStatus.BAD_REQUEST);
+            else if (response == 4)
+                return new ResponseEntity<String>("Failed. Cannot update books.", headers, HttpStatus.BAD_REQUEST);
             else
                 return new ResponseEntity<String>("Failed. Wrong data.", headers, HttpStatus.BAD_REQUEST);
 

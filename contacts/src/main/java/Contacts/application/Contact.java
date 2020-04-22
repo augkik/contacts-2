@@ -72,6 +72,8 @@ public class Contact {
         books.add(book);
     }
 
+    public void setBooks(List<String> bookList){this.books = bookList;}
+
     public int delBook(String book){
         for(String str : books) {
             if (str.equals(book)) {
