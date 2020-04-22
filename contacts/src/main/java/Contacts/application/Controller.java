@@ -81,7 +81,6 @@ public class Controller {
             RestTemplate t = new RestTemplate();
             HttpEntity<JSONObject> entity = new HttpEntity(book);
             ResponseEntity<String> response = t.exchange("http://library:80/books", HttpMethod.POST, entity, String.class);
-            //ResponseEntity<String> response = t.postForEntity("http://library:80/books", book, String.class);
             if(response.getStatusCodeValue() == 201){
 
                 String isbn = book.get("ISBN").toString();
