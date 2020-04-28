@@ -19,6 +19,9 @@ Contact with particular id:
 List of particular contact books:
 ```/contacts/<id>/books```
 
+List of all contacts with books:
+```/contacts?expand=books```
+
 PUT
 
 Update particular contact: ```/contacts/<id>```
@@ -33,6 +36,7 @@ Remove particular contact book: ```/contacts/<id>/books/<isbn>```
 
 POST
 
-Add new contact: ```/contacts```
+Add new contact: ```/contacts``` 
+body example: {"number": "", "surname": "", "name": "", "id": ,"email": "", "book": {"Pavadinimas": "", "Autorius": "","ISBN": "", "Metai":}}
 
 Add new book: ```/contacts/<id>/books```
