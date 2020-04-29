@@ -77,9 +77,14 @@ public class Access {
             return 2;
         }
 
+        if (!nContact.getBooks().isEmpty()) {
+            return 3;
+        }
+
         contactList.add(nContact);
         return 1;
     }
+
 
     public int updateContact(int oId, Contact uContact){
 
@@ -149,5 +154,6 @@ public class Access {
             }
         return 0;
     }
+
 
 }

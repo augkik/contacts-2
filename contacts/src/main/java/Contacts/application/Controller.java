@@ -4,14 +4,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
-import net.minidev.json.JSONObject;
+import org.json.simple.JSONObject;
+
 import org.springframework.http.*;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestMethod;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponents;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -47,7 +45,7 @@ public class Controller {
         HttpEntity<JSONObject> entity = new HttpEntity(obj);
         Gson gson = new Gson();
         String json;
-        JSONObject convertedObject;
+        JSONObject convertedObject; //= new JSONObject();
         for(String str : contact.getBooks()){
             response = t.exchange("http://library:80/books/" + str, HttpMethod.GET, entity, String.class);
 
@@ -59,8 +57,41 @@ public class Controller {
         return new ResponseEntity<List<JSONObject>>(books, HttpStatus.OK);
     }
 
+    @RequestMapping(value = "/contacts",params  = "expand", method = RequestMethod.GET)
+    public ResponseEntity<List<JSONObject>> getAllBooks(@RequestParam("expand") String expand) throws JsonProcessingException{
+        List<JSONObject> books = new ArrayList<JSONObject>();
+        List<JSONObject> all = new ArrayList<JSONObject>();
+        JSONObject convertedObject;
 
-    @RequestMapping(value = "/contacts", method = RequestMethod.POST)
+        ObjectMapper mapper = new ObjectMapper();
+        if(expand.equals("books")) {
+
+            List<Contact> contactList = contactAccess.getAllContacts();
+            List<JSONObject> list = new ArrayList<JSONObject>();
+            for (Contact contact : contactList) {
+                books = getBooks(contact.getId()).getBody();
+
+                String like = mapper.writeValueAsString(contact);
+
+
+                JSONObject obj = new JSONObject();
+                //JSONObject obj = new Gson().fromJson(like, JSONObject.class);
+                obj.put("name", contact.getName());
+                obj.put("number", contact.getNumber());
+                obj.put("id", contact.getId());
+                obj.put("surname", contact.getSurname());
+                obj.put("email", contact.getEmail());
+                obj.put("books", books);
+
+                all.add(obj);
+            }
+            return new ResponseEntity<List<JSONObject>>(all, HttpStatus.OK);
+        }
+        else return new ResponseEntity<List<JSONObject>>(all, HttpStatus.BAD_REQUEST);
+    }
+
+
+    @RequestMapping(value = "/contact", method = RequestMethod.POST)
     public ResponseEntity<String> addContact(@Valid @RequestBody Contact contact, UriComponentsBuilder b){
         int response = contactAccess.addContact(contact);
         List<Contact> list = contactAccess.getAllContacts();
@@ -69,7 +100,63 @@ public class Controller {
 
         if(response == 1) return new ResponseEntity<String>("Contact added successfully.", headers, HttpStatus.CREATED);
         else if(response == 2) return new ResponseEntity<String>("Failed. Wrong data.", headers, HttpStatus.BAD_REQUEST);
+        else if(response == 3) return new ResponseEntity<String>("Failed. Cannot add books.", headers, HttpStatus.BAD_REQUEST);
         return new ResponseEntity<String>("Failed. Contact already exists.", headers, HttpStatus.BAD_REQUEST);
+
+
+    }
+
+    @RequestMapping(value = "/contacts", method = RequestMethod.POST)
+    public ResponseEntity<String> addCon(@Valid @RequestBody JSONObject jsonO, UriComponentsBuilder b) throws JsonProcessingException {
+
+        ObjectMapper mapper = new ObjectMapper();
+        String name = (String) jsonO.get("name");
+        String surname = (String) jsonO.get("surname");
+        String number = (String) jsonO.get("number");
+        String email = (String) jsonO.get("email");
+        int id  = (int) jsonO.get("id");
+        Contact contact =  new Contact(id,surname,name,number,email);
+        int res = contactAccess.addContact(contact); // adding contact
+
+        List<Contact> list = contactAccess.getAllContacts();
+        Contact element = list.get(list.size() - 1);
+        HttpHeaders headers = headerBuilder(b, element.getId());
+
+
+        Object book = jsonO.get("book");
+        if(book != null && res == 1) {
+
+            String like = mapper.writeValueAsString(book);
+            JSONObject bookJson = new Gson().fromJson(like, JSONObject.class);
+
+            String isbn = (String) bookJson.get("ISBN");
+            double met = (double) bookJson.get("Metai");
+            int metai = (int) met;
+
+            bookJson.put("Metai", metai);
+
+            RestTemplate t = new RestTemplate();
+            HttpEntity<JSONObject> entity = new HttpEntity(bookJson);
+            deleteContact(id);
+            ResponseEntity<String> response = t.exchange("http://library:80/books", HttpMethod.POST, entity, String.class);
+            if(response.getStatusCodeValue() == 201) {
+                contactAccess.addContact(contact);
+                contact.addBook(isbn);
+                return new ResponseEntity<String>("Book added successfully. Contact added successfully.", headers, HttpStatus.CREATED);
+
+            }
+            else {
+                return new ResponseEntity<String>("Failed. Could not add book.", headers, HttpStatus.BAD_REQUEST);
+
+            }
+        }
+
+
+        if(res == 1 ) return new ResponseEntity<String>("Contact added successfully.", headers, HttpStatus.CREATED);
+        else if(res == 2) return new ResponseEntity<String>("Failed. Wrong data.", headers, HttpStatus.BAD_REQUEST);
+        else if(res == 3) return new ResponseEntity<String>("Failed. Cannot add books.", headers, HttpStatus.BAD_REQUEST);
+        else return new ResponseEntity<String>("Failed. Contact already exists.", HttpStatus.BAD_REQUEST);
+
     }
 
     @RequestMapping(value = "/contacts/{id}/books", method = RequestMethod.POST)
